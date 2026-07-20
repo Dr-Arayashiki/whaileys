@@ -388,7 +388,8 @@ const processMessage = async (
           const { tcTokens, nctSalt, ...historyData } = data;
           const tokenCount = tcTokens ? Object.keys(tcTokens).length : 0;
 
-          logger?.info(
+          // warn: visível com logger Baileys em "warn" (resto do info da lib fica silenciado)
+          logger?.warn(
             {
               tokenCount,
               hasNctSalt: !!(nctSalt && nctSalt.length),
@@ -414,7 +415,7 @@ const processMessage = async (
               };
             }
             await keyStore.set({ "contacts-tc-token": merged });
-            logger?.info(
+            logger?.warn(
               { tokenCount },
               "hydrated contacts-tc-token from history sync"
             );
@@ -424,7 +425,7 @@ const processMessage = async (
             await keyStore.set({
               "nct-salt": { [NCT_SALT_STORE_ID]: Buffer.from(nctSalt) }
             });
-            logger?.info(
+            logger?.warn(
               { saltBytes: nctSalt.length },
               "hydrated nct-salt from history sync"
             );

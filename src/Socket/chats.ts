@@ -3,6 +3,7 @@ import { proto } from "../../WAProto";
 import { PROCESSABLE_HISTORY_TYPES } from "../Defaults";
 import {
   ALL_WA_PATCH_NAMES,
+  AuthenticationCreds,
   ChatModification,
   ChatMutation,
   LTHashState,
@@ -31,8 +32,10 @@ import {
   extractSyncdPatches,
   generateProfilePicture,
   getHistoryMsg,
+  isReceiverTcTokenValid,
   newLTHashState,
-  processSyncAction
+  processSyncAction,
+  unixTimestampSeconds
 } from "../Utils";
 import { makeMutex } from "../Utils/make-mutex";
 import processMessage from "../Utils/process-message";
@@ -40,6 +43,8 @@ import {
   BinaryNode,
   getBinaryNodeChild,
   getBinaryNodeChildren,
+  isJidUser,
+  isLidUser,
   jidNormalizedUser,
   reduceBinaryNodeToDictionary,
   S_WHATSAPP_NET
@@ -635,15 +640,47 @@ export const makeChatsSocket = (config: SocketConfig) => {
     }
   };
 
-  const presenceSubscribe = (toJid: string) =>
-    sendNode({
+  /**
+   * Subscribe to a peer's presence.
+   * Attach receiver `<tctoken>` when we have a non-expired one.
+   * Never invent tokens and never use `<cstoken>` here — gated queries are tc-only.
+   */
+  const presenceSubscribe = async (toJid: string) => {
+    const normalized = jidNormalizedUser(toJid) || toJid;
+    let content: BinaryNode[] | undefined;
+
+    if (isJidUser(normalized) || isLidUser(normalized)) {
+      try {
+        const map = await authState.keys.get("contacts-tc-token", [normalized]);
+        const record = map[normalized];
+        const nowS = unixTimestampSeconds();
+        if (isReceiverTcTokenValid(record, nowS) && record?.token) {
+          content = [
+            {
+              tag: "tctoken",
+              attrs: record.timestamp ? { t: String(record.timestamp) } : {},
+              content: record.token as Uint8Array
+            }
+          ];
+        }
+      } catch (err) {
+        logger.warn(
+          { err, toJid: normalized },
+          "presenceSubscribe: failed to load tctoken (subscribing without it)"
+        );
+      }
+    }
+
+    return sendNode({
       tag: "presence",
       attrs: {
         to: toJid,
         id: generateMessageTag(),
         type: "subscribe"
-      }
+      },
+      ...(content ? { content } : {})
     });
+  };
 
   const handlePresenceUpdate = ({ tag, attrs, content }: BinaryNode) => {
     let presence: PresenceData | undefined;
@@ -1031,9 +1068,142 @@ export const makeChatsSocket = (config: SocketConfig) => {
         );
       }
 
-      sendPresenceUpdate(
-        markOnlineOnConnect ? "available" : "unavailable"
-      ).catch(error => onUnexpectedError(error, "presence update requests"));
+      /**
+       * markOnlineOnConnect: only send `available` with a real pushName.
+       * After QR, `myAppStateKeyId` often arrives *after* connection open —
+       * wait for the key, sync critical_block (pushNameSetting), then available.
+       * Never invent a fake name.
+       */
+      const markOnlineWhenReady = async () => {
+        if (!markOnlineOnConnect) {
+          await sendPresenceUpdate("unavailable");
+          return;
+        }
+
+        const sendAvailable = async (reason: string) => {
+          const name = authState.creds.me?.name;
+          if (!name) {
+            return false;
+          }
+
+          logger.warn(
+            { reason, name },
+            "markOnlineOnConnect: sending available"
+          );
+          await sendPresenceUpdate("available");
+          return true;
+        };
+
+        let criticalBlockTried = false;
+        const tryCriticalBlockForPushName = async (reason: string) => {
+          if (!authState.creds.myAppStateKeyId) {
+            return false;
+          }
+
+          if (criticalBlockTried) {
+            return sendAvailable(`${reason}-retry-name-only`);
+          }
+
+          criticalBlockTried = true;
+          try {
+            logger.warn(
+              { reason },
+              "markOnlineOnConnect: syncing critical_block for pushNameSetting"
+            );
+            await resyncAppState(["critical_block"], false);
+          } catch (err) {
+            logger.warn(
+              { err, reason },
+              "markOnlineOnConnect: critical_block sync failed"
+            );
+          }
+
+          return sendAvailable(`after-critical_block:${reason}`);
+        };
+
+        if (await sendAvailable("creds-had-name")) {
+          return;
+        }
+
+        if (await tryCriticalBlockForPushName("on-open")) {
+          return;
+        }
+
+        logger.warn(
+          "markOnlineOnConnect: waiting for myAppStateKeyId / pushName via creds.update"
+        );
+
+        await new Promise<void>(resolve => {
+          let settled = false;
+          let inflight = false;
+
+          const finish = () => {
+            if (settled) {
+              return;
+            }
+
+            settled = true;
+            ev.off("creds.update", onCreds);
+            clearTimeout(timer);
+            resolve();
+          };
+
+          const onCreds = (update: Partial<AuthenticationCreds>) => {
+            if (settled || inflight) {
+              return;
+            }
+
+            void (async () => {
+              inflight = true;
+              try {
+                if (update.me?.name || authState.creds.me?.name) {
+                  if (await sendAvailable("creds.update-name")) {
+                    finish();
+                    return;
+                  }
+                }
+
+                // Key arrived after QR — now we can hydrate pushNameSetting
+                if (
+                  update.myAppStateKeyId ||
+                  authState.creds.myAppStateKeyId
+                ) {
+                  if (await tryCriticalBlockForPushName("creds.update-key")) {
+                    finish();
+                    return;
+                  }
+                }
+              } finally {
+                inflight = false;
+              }
+            })();
+          };
+
+          const timer = setTimeout(() => {
+            logger.warn(
+              "markOnlineOnConnect: timed out waiting for pushName; available not sent"
+            );
+            finish();
+          }, 90_000);
+
+          ev.on("creds.update", onCreds);
+
+          // Race: key/name may already be set between checks and listener attach
+          if (authState.creds.me?.name) {
+            sendAvailable("race-name").then(ok => {
+              if (ok) finish();
+            });
+          } else if (authState.creds.myAppStateKeyId) {
+            tryCriticalBlockForPushName("race-key").then(ok => {
+              if (ok) finish();
+            });
+          }
+        });
+      };
+
+      markOnlineWhenReady().catch(error =>
+        onUnexpectedError(error, "presence update requests")
+      );
     }
   });
 
