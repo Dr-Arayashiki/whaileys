@@ -1854,6 +1854,8 @@ message HistorySync {
     optional string companionMetaNonce = 16;
     optional bytes shareableChatIdentifierEncryptionKey = 17;
     repeated Account accounts = 18;
+    // Non-contact token salt (used to derive outbound <cstoken>)
+    optional bytes nctSalt = 19;
     enum BotAIWaitListState {
         IN_WAITLIST = 0;
         AI_AVAILABLE = 1;

@@ -63,6 +63,7 @@ export const DEFAULT_CONNECTION_CONFIG: SocketConfig = {
   auth: undefined as any,
   markOnlineOnConnect: true,
   syncFullHistory: false,
+  historyPrivacyTokensOnly: false,
   shouldSyncHistoryMessage: () => true,
   shouldIgnoreJid: () => false,
   linkPreviewImageThumbnailWidth: 192,

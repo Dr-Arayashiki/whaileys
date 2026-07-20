@@ -60271,6 +60271,7 @@ $root.proto = (function() {
          * @property {string|null} [companionMetaNonce] HistorySync companionMetaNonce
          * @property {Uint8Array|null} [shareableChatIdentifierEncryptionKey] HistorySync shareableChatIdentifierEncryptionKey
          * @property {Array.<proto.IAccount>|null} [accounts] HistorySync accounts
+         * @property {Uint8Array|null} [nctSalt] HistorySync nctSalt
          */
 
         /**
@@ -60432,6 +60433,14 @@ $root.proto = (function() {
          */
         HistorySync.prototype.accounts = $util.emptyArray;
 
+        /**
+         * HistorySync nctSalt.
+         * @member {Uint8Array|null|undefined} nctSalt
+         * @memberof proto.HistorySync
+         * @instance
+         */
+        HistorySync.prototype.nctSalt = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
@@ -60480,6 +60489,12 @@ $root.proto = (function() {
         // Virtual OneOf for proto3 optional field
         Object.defineProperty(HistorySync.prototype, "_shareableChatIdentifierEncryptionKey", {
             get: $util.oneOfGetter($oneOfFields = ["shareableChatIdentifierEncryptionKey"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        // Virtual OneOf for proto3 optional field
+        Object.defineProperty(HistorySync.prototype, "_nctSalt", {
+            get: $util.oneOfGetter($oneOfFields = ["nctSalt"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -60548,6 +60563,8 @@ $root.proto = (function() {
             if (message.accounts != null && message.accounts.length)
                 for (var i = 0; i < message.accounts.length; ++i)
                     $root.proto.Account.encode(message.accounts[i], writer.uint32(/* id 18, wireType 2 =*/146).fork()).ldelim();
+            if (message.nctSalt != null && Object.hasOwnProperty.call(message, "nctSalt"))
+                writer.uint32(/* id 19, wireType 2 =*/154).bytes(message.nctSalt);
             return writer;
         };
 
@@ -60664,6 +60681,10 @@ $root.proto = (function() {
                         if (!(message.accounts && message.accounts.length))
                             message.accounts = [];
                         message.accounts.push($root.proto.Account.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 19: {
+                        message.nctSalt = reader.bytes();
                         break;
                     }
                 default:
@@ -60836,6 +60857,11 @@ $root.proto = (function() {
                         return "accounts." + error;
                 }
             }
+            if (message.nctSalt != null && message.hasOwnProperty("nctSalt")) {
+                properties._nctSalt = 1;
+                if (!(message.nctSalt && typeof message.nctSalt.length === "number" || $util.isString(message.nctSalt)))
+                    return "nctSalt: buffer expected";
+            }
             return null;
         };
 
@@ -61006,6 +61032,11 @@ $root.proto = (function() {
                     message.accounts[i] = $root.proto.Account.fromObject(object.accounts[i]);
                 }
             }
+            if (object.nctSalt != null)
+                if (typeof object.nctSalt === "string")
+                    $util.base64.decode(object.nctSalt, message.nctSalt = $util.newBuffer($util.base64.length(object.nctSalt)), 0);
+                else if (object.nctSalt.length >= 0)
+                    message.nctSalt = object.nctSalt;
             return message;
         };
 
@@ -61115,6 +61146,11 @@ $root.proto = (function() {
                 object.accounts = [];
                 for (var j = 0; j < message.accounts.length; ++j)
                     object.accounts[j] = $root.proto.Account.toObject(message.accounts[j], options);
+            }
+            if (message.nctSalt != null && message.hasOwnProperty("nctSalt")) {
+                object.nctSalt = options.bytes === String ? $util.base64.encode(message.nctSalt, 0, message.nctSalt.length) : options.bytes === Array ? Array.prototype.slice.call(message.nctSalt) : message.nctSalt;
+                if (options.oneofs)
+                    object._nctSalt = "nctSalt";
             }
             return object;
         };

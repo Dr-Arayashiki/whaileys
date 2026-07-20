@@ -19,6 +19,7 @@ import {
   normalizeMessageContent,
   toNumber
 } from "../Utils";
+import { NCT_SALT_STORE_ID } from "./privacy-tokens";
 import {
   areJidsSameUser,
   isJidGroup,
@@ -37,6 +38,8 @@ const SECRET_ENC_LABELS: Readonly<
 
 type ProcessMessageContext = {
   shouldProcessHistoryMsg: boolean;
+  /** Download history only to persist privacy tokens (no messaging-history.set). */
+  shouldHydratePrivacyFromHistory: boolean;
   creds: AuthenticationCreds;
   keyStore: SignalKeyStoreWithTransaction;
   ev: BaileysEventEmitter;
@@ -313,6 +316,7 @@ const processMessage = async (
   message: WAMessage,
   {
     shouldProcessHistoryMsg,
+    shouldHydratePrivacyFromHistory,
     ev,
     creds,
     keyStore,
@@ -345,14 +349,18 @@ const processMessage = async (
     switch (protocolMsg.type) {
       case proto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION:
         const histNotification = protocolMsg!.historySyncNotification!;
-        const process = shouldProcessHistoryMsg;
+        const processFull = shouldProcessHistoryMsg;
+        const processPrivacyOnly =
+          !processFull && shouldHydratePrivacyFromHistory;
+        const process = processFull || processPrivacyOnly;
         const isLatest = !creds.processedHistoryMessages?.length;
 
         logger?.info(
           {
-            histNotification,
-            process,
+            processFull,
+            processPrivacyOnly,
             id: message.key.id,
+            syncType: histNotification.syncType,
             isLatest
           },
           "got history notification"
@@ -360,8 +368,9 @@ const processMessage = async (
 
         if (process) {
           if (
+            processFull &&
             histNotification.syncType !==
-            proto.HistorySync.HistorySyncType.ON_DEMAND
+              proto.HistorySync.HistorySyncType.ON_DEMAND
           ) {
             ev.emit("creds.update", {
               processedHistoryMessages: [
@@ -376,14 +385,61 @@ const processMessage = async (
             options
           );
 
-          ev.emit("messaging-history.set", {
-            ...data,
-            isLatest:
-              histNotification.syncType !==
-              proto.HistorySync.HistorySyncType.ON_DEMAND
-                ? isLatest
-                : false
-          });
+          const { tcTokens, nctSalt, ...historyData } = data;
+          const tokenCount = tcTokens ? Object.keys(tcTokens).length : 0;
+
+          logger?.info(
+            {
+              tokenCount,
+              hasNctSalt: !!(nctSalt && nctSalt.length),
+              syncType: histNotification.syncType,
+              conversations: historyData.chats?.length,
+              privacyOnly: processPrivacyOnly
+            },
+            "history sync privacy tokens summary"
+          );
+
+          if (tokenCount > 0) {
+            const jids = Object.keys(tcTokens);
+            const existing = await keyStore.get("contacts-tc-token", jids);
+            const merged: typeof tcTokens = {};
+            for (const jid of jids) {
+              const incoming = tcTokens[jid];
+              const prev = existing[jid];
+              merged[jid] = {
+                token: incoming.token ?? prev?.token,
+                timestamp: incoming.timestamp ?? prev?.timestamp,
+                senderTimestamp:
+                  incoming.senderTimestamp ?? prev?.senderTimestamp
+              };
+            }
+            await keyStore.set({ "contacts-tc-token": merged });
+            logger?.info(
+              { tokenCount },
+              "hydrated contacts-tc-token from history sync"
+            );
+          }
+
+          if (nctSalt && nctSalt.length) {
+            await keyStore.set({
+              "nct-salt": { [NCT_SALT_STORE_ID]: Buffer.from(nctSalt) }
+            });
+            logger?.info(
+              { saltBytes: nctSalt.length },
+              "hydrated nct-salt from history sync"
+            );
+          }
+
+          if (processFull) {
+            ev.emit("messaging-history.set", {
+              ...historyData,
+              isLatest:
+                histNotification.syncType !==
+                proto.HistorySync.HistorySyncType.ON_DEMAND
+                  ? isLatest
+                  : false
+            });
+          }
         }
 
         break;

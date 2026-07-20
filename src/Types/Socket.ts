@@ -67,6 +67,13 @@ export type SocketConfig = {
   linkPreviewImageThumbnailWidth: number;
   /** Should Baileys ask the phone for full history, will be received async */
   syncFullHistory: boolean;
+  /**
+   * When `shouldSyncHistoryMessage` returns false, still download processable
+   * history chunks to hydrate `contacts-tc-token` / `nct-salt` for outbound
+   * privacy tokens — without emitting `messaging-history.set`.
+   * Default: false.
+   */
+  historyPrivacyTokensOnly: boolean;
   /** Should baileys fire init queries automatically, default true */
   fireInitQueries: boolean;
   /**

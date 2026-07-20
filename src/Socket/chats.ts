@@ -955,7 +955,16 @@ export const makeChatsSocket = (config: SocketConfig) => {
             historyMsg.syncType! as proto.HistorySync.HistorySyncType
           )
         : false;
-      // we should have app state keys before we process any history
+
+      const shouldHydratePrivacyFromHistory =
+        !shouldProcessHistoryMsg &&
+        !!config.historyPrivacyTokensOnly &&
+        !!historyMsg &&
+        PROCESSABLE_HISTORY_TYPES.includes(
+          historyMsg.syncType! as proto.HistorySync.HistorySyncType
+        );
+
+      // Full history import only — privacy-only hydrate must not force logout
       if (shouldProcessHistoryMsg) {
         if (!authState.creds.myAppStateKeyId) {
           logger.warn("myAppStateKeyId not synced, bad link");
@@ -977,6 +986,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
         })(),
         processMessage(msg, {
           shouldProcessHistoryMsg,
+          shouldHydratePrivacyFromHistory,
           ev,
           creds: authState.creds,
           keyStore: authState.keys,

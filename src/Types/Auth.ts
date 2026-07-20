@@ -71,7 +71,18 @@ export type SignalDataTypeMap = {
   session: any;
   "sender-key": any;
   "sender-key-memory": { [jid: string]: boolean };
-  "contacts-tc-token": { token: Buffer; timestamp?: string };
+  /**
+   * Trusted-contact privacy token for a peer JID.
+   * - `token` / `timestamp`: receiver token echoed on outbound messages
+   * - `senderTimestamp`: last time we issued a privacy token for this peer
+   */
+  "contacts-tc-token": {
+    token?: Buffer;
+    timestamp?: string;
+    senderTimestamp?: string;
+  };
+  /** Account-level salt for deriving outbound <cstoken> (HistorySync.nctSalt). */
+  "nct-salt": Buffer;
   "app-state-sync-key": proto.Message.IAppStateSyncKeyData;
   "app-state-sync-version": LTHashState;
 };

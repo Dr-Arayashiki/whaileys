@@ -33,6 +33,7 @@ import {
   xmppSignedPreKey
 } from "../Utils";
 import { makeMutex } from "../Utils/make-mutex";
+import { mergeReceiverTcTokenUpdate } from "../Utils/privacy-tokens";
 import {
   cleanMessage,
   decryptSecretEncryptedMessage
@@ -540,8 +541,14 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
           "received trusted contact token"
         );
 
+        const existing = await authState.keys.get("contacts-tc-token", [from]);
         await authState.keys.set({
-          "contacts-tc-token": { [from]: { token: content, timestamp } }
+          "contacts-tc-token": {
+            [from]: mergeReceiverTcTokenUpdate(existing[from], {
+              token: content,
+              timestamp
+            })
+          }
         });
       }
     }
@@ -781,6 +788,43 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
     }
 
     try {
+      const tctokenNode = getBinaryNodeChild(node, "tctoken");
+      if (tctokenNode) {
+        const from = jidNormalizedUser(node.attrs.from!);
+        const timestamp = tctokenNode.attrs.t;
+        const content = tctokenNode.content;
+        if (content instanceof Buffer || content instanceof Uint8Array) {
+          const tokenBuf = Buffer.from(content);
+          const tokenJid = tctokenNode.attrs.jid
+            ? jidNormalizedUser(tctokenNode.attrs.jid)
+            : undefined;
+          const ids = tokenJid && tokenJid !== from ? [from, tokenJid] : [from];
+          const existing = await authState.keys.get("contacts-tc-token", ids);
+          const updateObj: {
+            [jid: string]: ReturnType<typeof mergeReceiverTcTokenUpdate>;
+          } = {
+            [from]: mergeReceiverTcTokenUpdate(existing[from], {
+              token: tokenBuf,
+              timestamp
+            })
+          };
+          if (tokenJid) {
+            updateObj[tokenJid] = mergeReceiverTcTokenUpdate(
+              existing[tokenJid],
+              {
+                token: tokenBuf,
+                timestamp
+              }
+            );
+          }
+          await authState.keys.set({ "contacts-tc-token": updateObj });
+          logger.debug(
+            { from, tokenJid, timestamp },
+            "stored contacts-tc-token from inbound message"
+          );
+        }
+      }
+
       const {
         fullMessage: msg,
         category,

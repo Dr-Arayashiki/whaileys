@@ -7,6 +7,7 @@ export * from "./crypto";
 export * from "./signal";
 export * from "./noise-handler";
 export * from "./history";
+export * from "./privacy-tokens";
 export * from "./chat-utils";
 export * from "./lt-hash";
 export * from "./auth-utils";

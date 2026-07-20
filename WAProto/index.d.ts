@@ -19517,6 +19517,9 @@ export namespace proto {
 
         /** HistorySync accounts */
         accounts?: (proto.IAccount[]|null);
+
+        /** HistorySync nctSalt */
+        nctSalt?: (Uint8Array|null);
     }
 
     /** Represents a HistorySync. */
@@ -19578,6 +19581,9 @@ export namespace proto {
 
         /** HistorySync accounts. */
         public accounts: proto.IAccount[];
+
+        /** HistorySync nctSalt. */
+        public nctSalt?: (Uint8Array|null);
 
         /**
          * Creates a new HistorySync instance using the specified properties.

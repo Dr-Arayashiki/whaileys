@@ -2,13 +2,18 @@ import { AxiosRequestConfig } from "axios";
 import { promisify } from "util";
 import { inflate } from "zlib";
 import { proto } from "../../WAProto";
-import { Chat, Contact, WAMessageStubType } from "../Types";
-import { isJidUser } from "../WABinary";
+import { Chat, Contact, SignalDataTypeMap, WAMessageStubType } from "../Types";
+import { isJidUser, isLidUser, jidNormalizedUser } from "../WABinary";
 import { toNumber } from "./generics";
 import { normalizeMessageContent } from "./messages";
 import { downloadContentFromMessage } from "./messages-media";
+import { expandTcTokensWithLidPnMappings } from "./privacy-tokens";
 
 const inflatePromise = promisify(inflate);
+
+export type HistoryTcTokenMap = {
+  [jid: string]: SignalDataTypeMap["contacts-tc-token"];
+};
 
 export const downloadHistory = async (
   msg: proto.Message.IHistorySyncNotification,
@@ -35,6 +40,10 @@ export const processHistoryMessage = (item: proto.IHistorySync) => {
   const messages: proto.IWebMessageInfo[] = [];
   const contacts: Contact[] = [];
   const chats: Chat[] = [];
+  let tcTokens: HistoryTcTokenMap = {};
+  const nctSalt = item.nctSalt?.length
+    ? Buffer.from(item.nctSalt as Uint8Array)
+    : null;
 
   switch (item.syncType) {
     case proto.HistorySync.HistorySyncType.INITIAL_BOOTSTRAP:
@@ -43,6 +52,29 @@ export const processHistoryMessage = (item: proto.IHistorySync) => {
     case proto.HistorySync.HistorySyncType.ON_DEMAND:
       for (const chat of item.conversations! as Chat[]) {
         contacts.push({ id: chat.id, name: chat.name || undefined });
+
+        if (
+          chat.id &&
+          (isJidUser(chat.id) || isLidUser(chat.id)) &&
+          (chat.tcToken ||
+            chat.tcTokenTimestamp != null ||
+            chat.tcTokenSenderTimestamp != null)
+        ) {
+          const jid = jidNormalizedUser(chat.id);
+          tcTokens[jid] = {
+            token: chat.tcToken
+              ? Buffer.from(chat.tcToken as Uint8Array)
+              : undefined,
+            timestamp:
+              chat.tcTokenTimestamp != null
+                ? String(toNumber(chat.tcTokenTimestamp))
+                : undefined,
+            senderTimestamp:
+              chat.tcTokenSenderTimestamp != null
+                ? String(toNumber(chat.tcTokenSenderTimestamp))
+                : undefined
+          };
+        }
 
         const msgs = chat.messages || [];
         delete chat.messages;
@@ -84,6 +116,11 @@ export const processHistoryMessage = (item: proto.IHistorySync) => {
         chats.push({ ...chat });
       }
 
+      tcTokens = expandTcTokensWithLidPnMappings(
+        tcTokens,
+        item.phoneNumberToLidMappings
+      );
+
       break;
     case proto.HistorySync.HistorySyncType.PUSH_NAME:
       for (const c of item.pushnames!) {
@@ -98,7 +135,9 @@ export const processHistoryMessage = (item: proto.IHistorySync) => {
     contacts,
     messages,
     syncType: item.syncType,
-    progress: item.progress
+    progress: item.progress,
+    tcTokens,
+    nctSalt
   };
 };
 

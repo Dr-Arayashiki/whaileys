@@ -39,6 +39,13 @@ import {
   shouldIncludeReportingToken
 } from "../Utils/reporting-utils";
 import {
+  NCT_SALT_STORE_ID,
+  WA_TC_TOKEN_DEFAULTS,
+  generateCsTokenHash,
+  isReceiverTcTokenValid,
+  shouldSendNewToken
+} from "../Utils/privacy-tokens";
+import {
   areJidsSameUser,
   BinaryNode,
   BinaryNodeAttributes,
@@ -762,14 +769,37 @@ export const makeMessagesSocket = (config: SocketConfig) => {
           ? await authState.keys.get("contacts-tc-token", [destinationJid])
           : {};
 
-      const tcTokenBuffer = contactTcTokenData[destinationJid]?.token;
+      const tcTokenData = contactTcTokenData[destinationJid];
+      const nowS = unixTimestampSeconds();
+      const tcTokenValid = isReceiverTcTokenValid(tcTokenData, nowS);
 
-      if (tcTokenBuffer) {
+      if (tcTokenValid && tcTokenData?.token) {
         (stanza.content as BinaryNode[]).push({
           tag: "tctoken",
-          attrs: {},
-          content: tcTokenBuffer
+          attrs: {
+            t: String(tcTokenData.timestamp)
+          },
+          content: tcTokenData.token
         });
+      } else if (!isGroup && !isRetryResend && !isStatus) {
+        // Fallback <cstoken> when missing/expired receiver tcToken
+        // (requires HistorySync.nctSalt + me.lid)
+        try {
+          const saltMap = await authState.keys.get("nct-salt", [
+            NCT_SALT_STORE_ID
+          ]);
+          const nctSalt = saltMap[NCT_SALT_STORE_ID];
+          const meLid = authState.creds.me?.lid;
+          if (nctSalt?.length && meLid) {
+            (stanza.content as BinaryNode[]).push({
+              tag: "cstoken",
+              attrs: {},
+              content: generateCsTokenHash(nctSalt, meLid)
+            });
+          }
+        } catch (err) {
+          logger.warn({ err, destinationJid }, "failed to attach cstoken");
+        }
       }
 
       const innerMessage =
@@ -823,11 +853,36 @@ export const makeMessagesSocket = (config: SocketConfig) => {
       await sendNode(stanza);
     });
 
+    // Issue / refresh our sender trusted-contact token (fire-and-forget; Zapo pattern)
+    if (!isGroup && !isRetryResend && !isStatus) {
+      maybeIssueSenderTrustedContactToken(destinationJid).catch(err => {
+        logger.warn(
+          { err, destinationJid },
+          "sender trusted contact token issue failed"
+        );
+      });
+    }
+
     return msgId;
   };
 
-  const getPrivacyTokens = async (jids: string[]) => {
-    const t = unixTimestampSeconds().toString();
+  /**
+   * IQ set privacy tokens for peers + persist `senderTimestamp` on the store.
+   * Same xmlns/shape as WA Web / Zapo issue-privacy-token.
+   */
+  const issueTrustedContactTokens = async (
+    jids: string[],
+    timestampS: number = unixTimestampSeconds()
+  ) => {
+    const t = String(timestampS);
+    const normalized = jids
+      .map(j => jidNormalizedUser(j))
+      .filter((j): j is string => !!j);
+
+    if (!normalized.length) {
+      return undefined;
+    }
+
     const result = await query({
       tag: "iq",
       attrs: {
@@ -839,10 +894,10 @@ export const makeMessagesSocket = (config: SocketConfig) => {
         {
           tag: "tokens",
           attrs: {},
-          content: jids.map(jid => ({
+          content: normalized.map(jid => ({
             tag: "token",
             attrs: {
-              jid: jidNormalizedUser(jid),
+              jid,
               t,
               type: "trusted_contact"
             }
@@ -851,7 +906,50 @@ export const makeMessagesSocket = (config: SocketConfig) => {
       ]
     });
 
+    const existing = await authState.keys.get("contacts-tc-token", normalized);
+    const update: { [id: string]: (typeof existing)[string] } = {};
+    for (const jid of normalized) {
+      update[jid] = {
+        ...(existing[jid] || {}),
+        senderTimestamp: t
+      };
+    }
+    await authState.keys.set({ "contacts-tc-token": update });
+
     return result;
+  };
+
+  const getPrivacyTokens = async (jids: string[]) =>
+    issueTrustedContactTokens(jids);
+
+  /**
+   * Re-issue sender privacy token when the weekly bucket rolls (Zapo
+   * `maybeIssueSenderToken`). Does not block message send.
+   */
+  const maybeIssueSenderTrustedContactToken = async (recipientJid: string) => {
+    const jid = jidNormalizedUser(recipientJid);
+    if (!jid || isJidGroup(jid) || isJidStatusBroadcast(jid)) {
+      return;
+    }
+
+    const nowS = unixTimestampSeconds();
+    const map = await authState.keys.get("contacts-tc-token", [jid]);
+    const senderTs = map[jid]?.senderTimestamp;
+    if (senderTs != null && senderTs !== "") {
+      const senderTimestampS = Number(senderTs);
+      if (
+        Number.isFinite(senderTimestampS) &&
+        !shouldSendNewToken(
+          senderTimestampS,
+          nowS,
+          WA_TC_TOKEN_DEFAULTS.SENDER_DURATION_S
+        )
+      ) {
+        return;
+      }
+    }
+
+    await issueTrustedContactTokens([jid], nowS);
   };
 
   const waUploadToServer = getWAUploadToServer(config, refreshMediaConn);
