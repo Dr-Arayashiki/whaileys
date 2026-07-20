@@ -156089,6 +156089,7 @@ $root.proto = (function() {
          * @property {proto.SyncActionValue.INewsletterSavedInterestsAction|null} [newsletterSavedInterestsAction] SyncActionValue newsletterSavedInterestsAction
          * @property {proto.SyncActionValue.IAiThreadRenameAction|null} [aiThreadRenameAction] SyncActionValue aiThreadRenameAction
          * @property {proto.SyncActionValue.IInteractiveMessageAction|null} [interactiveMessageAction] SyncActionValue interactiveMessageAction
+         * @property {proto.SyncActionValue.INctSaltSyncAction|null} [nctSaltSyncAction] Account-level salt for outbound <cstoken> (regular_high / nct_salt_sync).
          */
 
         /**
@@ -156658,6 +156659,14 @@ $root.proto = (function() {
          */
         SyncActionValue.prototype.interactiveMessageAction = null;
 
+        /**
+         * Account-level salt for outbound <cstoken> (regular_high / nct_salt_sync).
+         * @member {proto.SyncActionValue.INctSaltSyncAction|null|undefined} nctSaltSyncAction
+         * @memberof proto.SyncActionValue
+         * @instance
+         */
+        SyncActionValue.prototype.nctSaltSyncAction = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
@@ -157075,6 +157084,12 @@ $root.proto = (function() {
             set: $util.oneOfSetter($oneOfFields)
         });
 
+        // Virtual OneOf for proto3 optional field
+        Object.defineProperty(SyncActionValue.prototype, "_nctSaltSyncAction", {
+            get: $util.oneOfGetter($oneOfFields = ["nctSaltSyncAction"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
         /**
          * Creates a new SyncActionValue instance using the specified properties.
          * @function create
@@ -157237,6 +157252,8 @@ $root.proto = (function() {
                 $root.proto.SyncActionValue.AiThreadRenameAction.encode(message.aiThreadRenameAction, writer.uint32(/* id 76, wireType 2 =*/610).fork()).ldelim();
             if (message.interactiveMessageAction != null && Object.hasOwnProperty.call(message, "interactiveMessageAction"))
                 $root.proto.SyncActionValue.InteractiveMessageAction.encode(message.interactiveMessageAction, writer.uint32(/* id 77, wireType 2 =*/618).fork()).ldelim();
+            if (message.nctSaltSyncAction != null && Object.hasOwnProperty.call(message, "nctSaltSyncAction"))
+                $root.proto.SyncActionValue.NctSaltSyncAction.encode(message.nctSaltSyncAction, writer.uint32(/* id 80, wireType 2 =*/642).fork()).ldelim();
             return writer;
         };
 
@@ -157545,6 +157562,10 @@ $root.proto = (function() {
                     }
                 case 77: {
                         message.interactiveMessageAction = $root.proto.SyncActionValue.InteractiveMessageAction.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 80: {
+                        message.nctSaltSyncAction = $root.proto.SyncActionValue.NctSaltSyncAction.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -158132,6 +158153,14 @@ $root.proto = (function() {
                         return "interactiveMessageAction." + error;
                 }
             }
+            if (message.nctSaltSyncAction != null && message.hasOwnProperty("nctSaltSyncAction")) {
+                properties._nctSaltSyncAction = 1;
+                {
+                    var error = $root.proto.SyncActionValue.NctSaltSyncAction.verify(message.nctSaltSyncAction);
+                    if (error)
+                        return "nctSaltSyncAction." + error;
+                }
+            }
             return null;
         };
 
@@ -158496,6 +158525,11 @@ $root.proto = (function() {
                     throw TypeError(".proto.SyncActionValue.interactiveMessageAction: object expected");
                 message.interactiveMessageAction = $root.proto.SyncActionValue.InteractiveMessageAction.fromObject(object.interactiveMessageAction);
             }
+            if (object.nctSaltSyncAction != null) {
+                if (typeof object.nctSaltSyncAction !== "object")
+                    throw TypeError(".proto.SyncActionValue.nctSaltSyncAction: object expected");
+                message.nctSaltSyncAction = $root.proto.SyncActionValue.NctSaltSyncAction.fromObject(object.nctSaltSyncAction);
+            }
             return message;
         };
 
@@ -158859,6 +158893,11 @@ $root.proto = (function() {
                 object.interactiveMessageAction = $root.proto.SyncActionValue.InteractiveMessageAction.toObject(message.interactiveMessageAction, options);
                 if (options.oneofs)
                     object._interactiveMessageAction = "interactiveMessageAction";
+            }
+            if (message.nctSaltSyncAction != null && message.hasOwnProperty("nctSaltSyncAction")) {
+                object.nctSaltSyncAction = $root.proto.SyncActionValue.NctSaltSyncAction.toObject(message.nctSaltSyncAction, options);
+                if (options.oneofs)
+                    object._nctSaltSyncAction = "nctSaltSyncAction";
             }
             return object;
         };
@@ -165173,6 +165212,225 @@ $root.proto = (function() {
             })();
 
             return InteractiveMessageAction;
+        })();
+
+        SyncActionValue.NctSaltSyncAction = (function() {
+
+            /**
+             * Properties of a NctSaltSyncAction.
+             * @memberof proto.SyncActionValue
+             * @interface INctSaltSyncAction
+             * @property {Uint8Array|null} [salt] NctSaltSyncAction salt
+             */
+
+            /**
+             * Constructs a new NctSaltSyncAction.
+             * @memberof proto.SyncActionValue
+             * @classdesc Represents a NctSaltSyncAction.
+             * @implements INctSaltSyncAction
+             * @constructor
+             * @param {proto.SyncActionValue.INctSaltSyncAction=} [properties] Properties to set
+             */
+            function NctSaltSyncAction(properties) {
+                if (properties)
+                    for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                        if (properties[keys[i]] != null)
+                            this[keys[i]] = properties[keys[i]];
+            }
+
+            /**
+             * NctSaltSyncAction salt.
+             * @member {Uint8Array|null|undefined} salt
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @instance
+             */
+            NctSaltSyncAction.prototype.salt = null;
+
+            // OneOf field names bound to virtual getters and setters
+            var $oneOfFields;
+
+            // Virtual OneOf for proto3 optional field
+            Object.defineProperty(NctSaltSyncAction.prototype, "_salt", {
+                get: $util.oneOfGetter($oneOfFields = ["salt"]),
+                set: $util.oneOfSetter($oneOfFields)
+            });
+
+            /**
+             * Creates a new NctSaltSyncAction instance using the specified properties.
+             * @function create
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {proto.SyncActionValue.INctSaltSyncAction=} [properties] Properties to set
+             * @returns {proto.SyncActionValue.NctSaltSyncAction} NctSaltSyncAction instance
+             */
+            NctSaltSyncAction.create = function create(properties) {
+                return new NctSaltSyncAction(properties);
+            };
+
+            /**
+             * Encodes the specified NctSaltSyncAction message. Does not implicitly {@link proto.SyncActionValue.NctSaltSyncAction.verify|verify} messages.
+             * @function encode
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {proto.SyncActionValue.INctSaltSyncAction} message NctSaltSyncAction message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            NctSaltSyncAction.encode = function encode(message, writer) {
+                if (!writer)
+                    writer = $Writer.create();
+                if (message.salt != null && Object.hasOwnProperty.call(message, "salt"))
+                    writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.salt);
+                return writer;
+            };
+
+            /**
+             * Encodes the specified NctSaltSyncAction message, length delimited. Does not implicitly {@link proto.SyncActionValue.NctSaltSyncAction.verify|verify} messages.
+             * @function encodeDelimited
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {proto.SyncActionValue.INctSaltSyncAction} message NctSaltSyncAction message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            NctSaltSyncAction.encodeDelimited = function encodeDelimited(message, writer) {
+                return this.encode(message, writer).ldelim();
+            };
+
+            /**
+             * Decodes a NctSaltSyncAction message from the specified reader or buffer.
+             * @function decode
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @param {number} [length] Message length if known beforehand
+             * @returns {proto.SyncActionValue.NctSaltSyncAction} NctSaltSyncAction
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            NctSaltSyncAction.decode = function decode(reader, length) {
+                if (!(reader instanceof $Reader))
+                    reader = $Reader.create(reader);
+                var end = length === undefined ? reader.len : reader.pos + length, message = new $root.proto.SyncActionValue.NctSaltSyncAction();
+                while (reader.pos < end) {
+                    var tag = reader.uint32();
+                    switch (tag >>> 3) {
+                    case 1: {
+                            message.salt = reader.bytes();
+                            break;
+                        }
+                    default:
+                        reader.skipType(tag & 7);
+                        break;
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Decodes a NctSaltSyncAction message from the specified reader or buffer, length delimited.
+             * @function decodeDelimited
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @returns {proto.SyncActionValue.NctSaltSyncAction} NctSaltSyncAction
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            NctSaltSyncAction.decodeDelimited = function decodeDelimited(reader) {
+                if (!(reader instanceof $Reader))
+                    reader = new $Reader(reader);
+                return this.decode(reader, reader.uint32());
+            };
+
+            /**
+             * Verifies a NctSaltSyncAction message.
+             * @function verify
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {Object.<string,*>} message Plain object to verify
+             * @returns {string|null} `null` if valid, otherwise the reason why it is not
+             */
+            NctSaltSyncAction.verify = function verify(message) {
+                if (typeof message !== "object" || message === null)
+                    return "object expected";
+                var properties = {};
+                if (message.salt != null && message.hasOwnProperty("salt")) {
+                    properties._salt = 1;
+                    if (!(message.salt && typeof message.salt.length === "number" || $util.isString(message.salt)))
+                        return "salt: buffer expected";
+                }
+                return null;
+            };
+
+            /**
+             * Creates a NctSaltSyncAction message from a plain object. Also converts values to their respective internal types.
+             * @function fromObject
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {Object.<string,*>} object Plain object
+             * @returns {proto.SyncActionValue.NctSaltSyncAction} NctSaltSyncAction
+             */
+            NctSaltSyncAction.fromObject = function fromObject(object) {
+                if (object instanceof $root.proto.SyncActionValue.NctSaltSyncAction)
+                    return object;
+                var message = new $root.proto.SyncActionValue.NctSaltSyncAction();
+                if (object.salt != null)
+                    if (typeof object.salt === "string")
+                        $util.base64.decode(object.salt, message.salt = $util.newBuffer($util.base64.length(object.salt)), 0);
+                    else if (object.salt.length >= 0)
+                        message.salt = object.salt;
+                return message;
+            };
+
+            /**
+             * Creates a plain object from a NctSaltSyncAction message. Also converts values to other types if specified.
+             * @function toObject
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {proto.SyncActionValue.NctSaltSyncAction} message NctSaltSyncAction
+             * @param {$protobuf.IConversionOptions} [options] Conversion options
+             * @returns {Object.<string,*>} Plain object
+             */
+            NctSaltSyncAction.toObject = function toObject(message, options) {
+                if (!options)
+                    options = {};
+                var object = {};
+                if (message.salt != null && message.hasOwnProperty("salt")) {
+                    object.salt = options.bytes === String ? $util.base64.encode(message.salt, 0, message.salt.length) : options.bytes === Array ? Array.prototype.slice.call(message.salt) : message.salt;
+                    if (options.oneofs)
+                        object._salt = "salt";
+                }
+                return object;
+            };
+
+            /**
+             * Converts this NctSaltSyncAction to JSON.
+             * @function toJSON
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @instance
+             * @returns {Object.<string,*>} JSON object
+             */
+            NctSaltSyncAction.prototype.toJSON = function toJSON() {
+                return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            /**
+             * Gets the default type url for NctSaltSyncAction
+             * @function getTypeUrl
+             * @memberof proto.SyncActionValue.NctSaltSyncAction
+             * @static
+             * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns {string} The default type url
+             */
+            NctSaltSyncAction.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                if (typeUrlPrefix === undefined) {
+                    typeUrlPrefix = "type.googleapis.com";
+                }
+                return typeUrlPrefix + "/proto.SyncActionValue.NctSaltSyncAction";
+            };
+
+            return NctSaltSyncAction;
         })();
 
         SyncActionValue.KeyExpiration = (function() {

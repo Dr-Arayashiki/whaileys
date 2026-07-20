@@ -50806,6 +50806,9 @@ export namespace proto {
 
         /** SyncActionValue interactiveMessageAction */
         interactiveMessageAction?: (proto.SyncActionValue.IInteractiveMessageAction|null);
+
+        /** Account-level salt for outbound <cstoken> (regular_high / nct_salt_sync). */
+        nctSaltSyncAction?: (proto.SyncActionValue.INctSaltSyncAction|null);
     }
 
     /** Represents a SyncActionValue. */
@@ -51023,6 +51026,9 @@ export namespace proto {
 
         /** SyncActionValue interactiveMessageAction. */
         public interactiveMessageAction?: (proto.SyncActionValue.IInteractiveMessageAction|null);
+
+        /** Account-level salt for outbound <cstoken> (regular_high / nct_salt_sync). */
+        public nctSaltSyncAction?: (proto.SyncActionValue.INctSaltSyncAction|null);
 
         /**
          * Creates a new SyncActionValue instance using the specified properties.
@@ -53753,6 +53759,103 @@ export namespace proto {
             enum InteractiveMessageActionMode {
                 DISABLE_CTA = 1
             }
+        }
+
+        /** Properties of a NctSaltSyncAction. */
+        interface INctSaltSyncAction {
+
+            /** NctSaltSyncAction salt */
+            salt?: (Uint8Array|null);
+        }
+
+        /** Represents a NctSaltSyncAction. */
+        class NctSaltSyncAction implements INctSaltSyncAction {
+
+            /**
+             * Constructs a new NctSaltSyncAction.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: proto.SyncActionValue.INctSaltSyncAction);
+
+            /** NctSaltSyncAction salt. */
+            public salt?: (Uint8Array|null);
+
+            /**
+             * Creates a new NctSaltSyncAction instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns NctSaltSyncAction instance
+             */
+            public static create(properties?: proto.SyncActionValue.INctSaltSyncAction): proto.SyncActionValue.NctSaltSyncAction;
+
+            /**
+             * Encodes the specified NctSaltSyncAction message. Does not implicitly {@link proto.SyncActionValue.NctSaltSyncAction.verify|verify} messages.
+             * @param message NctSaltSyncAction message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: proto.SyncActionValue.INctSaltSyncAction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified NctSaltSyncAction message, length delimited. Does not implicitly {@link proto.SyncActionValue.NctSaltSyncAction.verify|verify} messages.
+             * @param message NctSaltSyncAction message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: proto.SyncActionValue.INctSaltSyncAction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a NctSaltSyncAction message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns NctSaltSyncAction
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): proto.SyncActionValue.NctSaltSyncAction;
+
+            /**
+             * Decodes a NctSaltSyncAction message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns NctSaltSyncAction
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): proto.SyncActionValue.NctSaltSyncAction;
+
+            /**
+             * Verifies a NctSaltSyncAction message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a NctSaltSyncAction message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns NctSaltSyncAction
+             */
+            public static fromObject(object: { [k: string]: any }): proto.SyncActionValue.NctSaltSyncAction;
+
+            /**
+             * Creates a plain object from a NctSaltSyncAction message. Also converts values to other types if specified.
+             * @param message NctSaltSyncAction
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: proto.SyncActionValue.NctSaltSyncAction, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this NctSaltSyncAction to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for NctSaltSyncAction
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
         }
 
         /** Properties of a KeyExpiration. */

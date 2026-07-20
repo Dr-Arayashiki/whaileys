@@ -1015,6 +1015,9 @@ export const processSyncAction = (
         type: action.labelAssociationAction.labeled ? "add" : "remove"
       });
     }
+  } else if (action?.nctSaltSyncAction || type === "nct_salt_sync") {
+    // Handled in chats.ts hydrateNctSaltFromAppState (key store) — no chat event
+    logger?.debug({ type, id }, "nct_salt_sync app-state mutation (key-store hydrate)");
   } else {
     logger?.debug({ syncAction, id }, "unprocessable update");
   }

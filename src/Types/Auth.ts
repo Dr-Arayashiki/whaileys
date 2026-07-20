@@ -81,7 +81,7 @@ export type SignalDataTypeMap = {
     timestamp?: string;
     senderTimestamp?: string;
   };
-  /** Account-level salt for deriving outbound <cstoken> (HistorySync.nctSalt). */
+  /** Account-level salt for deriving outbound <cstoken> (HistorySync.nctSalt / AppState nctSaltSyncAction). */
   "nct-salt": Buffer;
   "app-state-sync-key": proto.Message.IAppStateSyncKeyData;
   "app-state-sync-version": LTHashState;

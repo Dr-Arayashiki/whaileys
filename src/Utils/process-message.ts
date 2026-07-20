@@ -388,11 +388,11 @@ const processMessage = async (
           const { tcTokens, nctSalt, ...historyData } = data;
           const tokenCount = tcTokens ? Object.keys(tcTokens).length : 0;
 
-          // debug: ativo no Whaticket só se loggerBaileys.level = "debug" no wbot.ts
           logger?.debug(
             {
               tokenCount,
               hasNctSalt: !!(nctSalt && nctSalt.length),
+              saltBytes: nctSalt?.length || 0,
               syncType: histNotification.syncType,
               conversations: historyData.chats?.length,
               privacyOnly: processPrivacyOnly

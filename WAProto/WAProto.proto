@@ -4540,6 +4540,8 @@ message SyncActionValue {
     optional NewsletterSavedInterestsAction newsletterSavedInterestsAction = 75;
     optional AiThreadRenameAction aiThreadRenameAction = 76;
     optional InteractiveMessageAction interactiveMessageAction = 77;
+    /** Account-level salt for outbound <cstoken> (regular_high / nct_salt_sync). */
+    optional NctSaltSyncAction nctSaltSyncAction = 80;
     message AgentAction {
         optional string name = 1;
         optional int32 deviceID = 2;
@@ -4668,6 +4670,10 @@ message SyncActionValue {
         enum InteractiveMessageActionMode {
             DISABLE_CTA = 1;
         }
+    }
+
+    message NctSaltSyncAction {
+        optional bytes salt = 1;
     }
     
     message KeyExpiration {

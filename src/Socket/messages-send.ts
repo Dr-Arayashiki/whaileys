@@ -783,7 +783,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
         });
       } else if (!isGroup && !isRetryResend && !isStatus) {
         // Fallback <cstoken> when missing/expired receiver tcToken
-        // (requires HistorySync.nctSalt + me.lid)
+        // (requires nctSalt from HistorySync / AppState + me.lid)
         try {
           const saltMap = await authState.keys.get("nct-salt", [
             NCT_SALT_STORE_ID

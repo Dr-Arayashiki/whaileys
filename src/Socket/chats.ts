@@ -33,6 +33,7 @@ import {
   generateProfilePicture,
   getHistoryMsg,
   isReceiverTcTokenValid,
+  NCT_SALT_STORE_ID,
   newLTHashState,
   processSyncAction,
   unixTimestampSeconds
@@ -416,9 +417,58 @@ export const makeChatsSocket = (config: SocketConfig) => {
     });
   };
 
+  /**
+   * Persist account NCT salt from App State (`regular_high` → nct_salt_sync).
+   * Same store key as HistorySync.nctSalt so outbound <cstoken> can find it.
+   *
+   * IMPORTANT: call keys.set synchronously (no fire-and-forget). Inside
+   * resyncAppState's transaction, set() queues into mutations; an async void
+   * would run after commit and race / lose the write.
+   */
+  const hydrateNctSaltFromAppState = (mutation: ChatMutation) => {
+    const nctAction = mutation.syncAction?.value?.nctSaltSyncAction;
+    const isNctSaltIndex = mutation.index?.[0] === "nct_salt_sync";
+    if (!nctAction && !isNctSaltIndex) {
+      return;
+    }
+
+    const salt = nctAction?.salt;
+    if (salt && (salt as Uint8Array).length) {
+      try {
+        const result = authState.keys.set({
+          "nct-salt": {
+            [NCT_SALT_STORE_ID]: Buffer.from(salt as Uint8Array)
+          }
+        });
+        logger.debug(
+          { saltBytes: (salt as Uint8Array).length, index: mutation.index },
+          "hydrated nct-salt from app state"
+        );
+        if (result && typeof (result as Promise<void>).then === "function") {
+          void (result as Promise<void>).catch(err =>
+            logger.warn({ err }, "nct-salt app state hydrate failed")
+          );
+        }
+      } catch (err) {
+        logger.warn({ err }, "nct-salt app state hydrate failed");
+      }
+      return;
+    }
+
+    // Do NOT clear store on empty/decode-miss (avoids wiping a good salt)
+    logger.debug(
+      {
+        index: mutation.index,
+        hasNctAction: !!nctAction
+      },
+      "nct_salt_sync mutation without salt bytes (not clearing store)"
+    );
+  };
+
   const newAppStateChunkHandler = (isInitialSync: boolean) => {
     return {
       onMutation(mutation: ChatMutation) {
+        hydrateNctSaltFromAppState(mutation);
         processSyncAction(
           mutation,
           ev,
