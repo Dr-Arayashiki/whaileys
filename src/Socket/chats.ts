@@ -1086,7 +1086,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
             return false;
           }
 
-          logger.warn(
+          logger.debug(
             { reason, name },
             "markOnlineOnConnect: sending available"
           );
@@ -1106,7 +1106,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
 
           criticalBlockTried = true;
           try {
-            logger.warn(
+            logger.debug(
               { reason },
               "markOnlineOnConnect: syncing critical_block for pushNameSetting"
             );
@@ -1129,7 +1129,7 @@ export const makeChatsSocket = (config: SocketConfig) => {
           return;
         }
 
-        logger.warn(
+        logger.debug(
           "markOnlineOnConnect: waiting for myAppStateKeyId / pushName via creds.update"
         );
 
