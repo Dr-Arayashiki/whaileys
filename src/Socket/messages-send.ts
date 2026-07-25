@@ -782,19 +782,22 @@ export const makeMessagesSocket = (config: SocketConfig) => {
           content: tcTokenData.token
         });
       } else if (!isGroup && !isRetryResend && !isStatus) {
-        // Fallback <cstoken> when missing/expired receiver tcToken
-        // (requires nctSalt from HistorySync / AppState + me.lid)
+        // Fallback <cstoken> when missing/expired receiver tcToken.
+        // HMAC over recipient @lid (Baileys/whatsmeow); needs nctSalt + me.lid gate.
         try {
           const saltMap = await authState.keys.get("nct-salt", [
             NCT_SALT_STORE_ID
           ]);
           const nctSalt = saltMap[NCT_SALT_STORE_ID];
           const meLid = authState.creds.me?.lid;
-          if (nctSalt?.length && meLid) {
+          const recipientLid = isLidUser(destinationJid)
+            ? destinationJid
+            : undefined;
+          if (nctSalt?.length && meLid && recipientLid) {
             (stanza.content as BinaryNode[]).push({
               tag: "cstoken",
               attrs: {},
-              content: generateCsTokenHash(nctSalt, meLid)
+              content: generateCsTokenHash(nctSalt, recipientLid)
             });
           }
         } catch (err) {

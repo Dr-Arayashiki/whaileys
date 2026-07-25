@@ -76,14 +76,14 @@ export const isReceiverTcTokenValid = (
 };
 
 /**
- * Derive outbound `<cstoken>` the same way WA Web / Zapo do:
- * HMAC-SHA256(key = nctSalt, data = utf8(normalized meLid)).
+ * Derive outbound `<cstoken>` (Baileys / whatsmeow / WA Web NCT):
+ * HMAC-SHA256(key = nctSalt, data = utf8(normalized recipient @lid)).
  */
 export const generateCsTokenHash = (
   nctSalt: Uint8Array | Buffer,
-  meLid: string
+  recipientLid: string
 ): Buffer => {
-  const lid = jidNormalizedUser(meLid) || meLid;
+  const lid = jidNormalizedUser(recipientLid) || recipientLid;
   return hmacSign(Buffer.from(lid, "utf8"), Buffer.from(nctSalt), "sha256");
 };
 
