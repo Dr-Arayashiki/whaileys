@@ -1056,6 +1056,24 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
     ev.emit("connection.update", { receivedPendingNotifications: true });
   });
 
+  // Stanza tag "status" (ex.: type=media) — ack obrigatório no protocolo
+  const handleStatusStanza = async (node: BinaryNode) => {
+    try {
+      logger.debug(
+        {
+          id: node.attrs.id,
+          type: node.attrs.type,
+          from: node.attrs.from,
+          participant: node.attrs.participant,
+          offline: node.attrs.offline
+        },
+        "recv status stanza"
+      );
+    } finally {
+      await sendMessageAck(node);
+    }
+  };
+
   // recv a message
   ws.on("CB:message", (node: BinaryNode) => {
     flushBufferIfLastOfflineNode(node, "processing message", handleMessage);
@@ -1075,6 +1093,10 @@ export const makeMessagesRecvSocket = (config: SocketConfig) => {
       "handling notification",
       handleNotification
     );
+  });
+
+  ws.on("CB:status", (node: BinaryNode) => {
+    flushBufferIfLastOfflineNode(node, "handling status", handleStatusStanza);
   });
 
   ws.on("CB:ack,class:message", (node: BinaryNode) => {

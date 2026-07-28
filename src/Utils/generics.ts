@@ -384,7 +384,9 @@ export const getStatusFromReceiptType = (type: string | undefined) => {
 };
 
 const CODE_MAP: { [_: string]: DisconnectReason } = {
-  conflict: DisconnectReason.connectionReplaced
+  conflict: DisconnectReason.connectionReplaced,
+  // ack pendente (ex.: status/media) → reconectar, não tratar como sessão inválida
+  ack: DisconnectReason.restartRequired
 };
 
 /**
