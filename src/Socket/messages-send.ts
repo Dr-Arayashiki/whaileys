@@ -397,27 +397,74 @@ export const makeMessagesSocket = (config: SocketConfig) => {
     return { nodes, shouldIncludeDeviceIdentity };
   };
 
-  const createButtonNode = (message: proto.IMessage) => {
-    if (message.listMessage) {
-      return [
-        {
-          tag: "list",
-          attrs: { type: "product_list", v: "2" }
-        }
-      ];
+  const unwrapButtonMessage = (message: proto.IMessage): proto.IMessage => {
+    let msg: any = message;
+    for (;;) {
+      const inner =
+        msg?.ephemeralMessage?.message ??
+        msg?.viewOnceMessage?.message ??
+        msg?.viewOnceMessageV2?.message ??
+        msg?.documentWithCaptionMessage?.message ??
+        msg?.deviceSentMessage?.message;
+      if (!inner) return (msg || {}) as proto.IMessage;
+      msg = inner;
+    }
+  };
+
+  /**
+   * Nó <biz> completo.
+   * payment_info / review_and_pay: só attrs.native_flow_name (sem filhos).
+   * Demais botões: interactive > native_flow name=mixed.
+   */
+  const createButtonBizNode = (
+    message: proto.IMessage
+  ): BinaryNode | null => {
+    const msg = unwrapButtonMessage(message);
+    const firstButtonName = String(
+      msg.interactiveMessage?.nativeFlowMessage?.buttons?.[0]?.name || ""
+    );
+
+    if (firstButtonName === "payment_info") {
+      return {
+        tag: "biz",
+        attrs: { native_flow_name: "payment_info" }
+      };
     }
 
-    if (
-      message.buttonsMessage ||
-      message.interactiveMessage?.nativeFlowMessage
-    ) {
-      return [
-        {
-          tag: "interactive",
-          attrs: { type: "native_flow", v: "1" },
-          content: [{ tag: "native_flow", attrs: { v: "9", name: "mixed" } }]
-        }
-      ];
+    if (firstButtonName === "review_and_pay") {
+      return {
+        tag: "biz",
+        attrs: { native_flow_name: "order_details" }
+      };
+    }
+
+    if (msg.listMessage) {
+      return {
+        tag: "biz",
+        attrs: {},
+        content: [
+          {
+            tag: "list",
+            attrs: { type: "product_list", v: "2" }
+          }
+        ]
+      };
+    }
+
+    if (msg.buttonsMessage || msg.interactiveMessage?.nativeFlowMessage) {
+      return {
+        tag: "biz",
+        attrs: {},
+        content: [
+          {
+            tag: "interactive",
+            attrs: { type: "native_flow", v: "1" },
+            content: [
+              { tag: "native_flow", attrs: { v: "9", name: "mixed" } }
+            ]
+          }
+        ]
+      };
     }
 
     return null;
@@ -808,16 +855,14 @@ export const makeMessagesSocket = (config: SocketConfig) => {
       const innerMessage =
         message.documentWithCaptionMessage?.message || message;
 
-      const buttonContent = createButtonNode(innerMessage);
+      const buttonBizNode = createButtonBizNode(innerMessage);
 
-      if (buttonContent) {
-        (stanza.content as BinaryNode[]).push({
-          tag: "biz",
-          attrs: {},
-          content: buttonContent
-        });
-
-        logger.debug({ jid }, `adding biz node for buttons message`);
+      if (buttonBizNode) {
+        (stanza.content as BinaryNode[]).push(buttonBizNode);
+        logger.debug(
+          { jid, nativeFlowName: buttonBizNode.attrs?.native_flow_name },
+          `adding biz node for buttons message`
+        );
       }
 
       if (
