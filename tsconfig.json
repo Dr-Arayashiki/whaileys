@@ -5,6 +5,7 @@
     "experimentalDecorators": true,
     "allowJs": false,
     "checkJs": false,
+    "rootDir": "./src",
     "outDir": "lib",
     "strict": false,
     "strictNullChecks": true,

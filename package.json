@@ -81,7 +81,7 @@
     "@adiwajshing/keyed-db": "^0.2.4",
     "@types/got": "^9.6.11",
     "@types/jest": "^27.5.1",
-    "@types/node": "^16.0.0",
+    "@types/node": "^22.15.29",
     "@types/sharp": "^0.29.4",
     "@types/ws": "^8.0.0",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
@@ -99,6 +99,6 @@
     "ts-jest": "^27.0.3",
     "ts-node": "^10.8.1",
     "typedoc": "^0.22.0",
-    "typescript": "^4.0.0"
+    "typescript": "^7.0.2"
   }
 }

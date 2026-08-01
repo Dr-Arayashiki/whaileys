@@ -112,7 +112,7 @@ export const toNumber = (t: Long | number | null | undefined): number =>
     ? "toNumber" in t
       ? t.toNumber()
       : (t as any).low
-    : t;
+    : t ?? 0;
 
 /** unix timestamp of a date in seconds */
 export const unixTimestampSeconds = (date: Date = new Date()) =>
